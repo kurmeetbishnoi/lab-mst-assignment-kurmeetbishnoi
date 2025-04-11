@@ -1,0 +1,257 @@
+import java.util.*;
+
+public class Student{
+    private String name;
+    private int age;
+    private String address;
+    private String email;
+
+    public Student(){}
+
+    public Student(String name, int age, String address, String email){
+       this.name = name;
+       this.age = age;
+       this.address = address;
+       this.email = email;
+    }
+
+    public void setName(String newName){
+       name = newName;
+    }
+    public void setAge(int newAge){
+       age = newAge;
+    }
+    public void setAddress(String newAddress){
+       address = newAddress;
+    }
+    public void setEmail(String newEmail){
+       email = newEmail;
+    }
+
+    public String getName(){
+      return name;
+    }
+    public int getAge(){
+      return age;
+    }
+    public String getAddress(){
+      return address;
+    }
+    public String getEmail(){
+      return email;
+    }
+
+    public String toString() {
+        return "Name: " + name + ", Age: " + age + ", Address: " + address + ", Email: " + email;
+    }
+
+    public static void main(String[] args){
+        Scanner sc = new Scanner(System.in);
+        Student[] s= new Student[];5
+
+        for(int i = 0; i < 5; i++){
+            System.out.print("Name: ");
+            String name = sc.nextLine();
+            System.out.print("Age: ");
+            int age = sc.nextInt();
+            System.out.print("Address: ");
+            sc.nextLine();
+            String address = sc.nextLine();
+            System.out.print("Email: ");
+            String email = sc.nextLine();
+
+            s[i] = new Student(name,age,address,email);
+        }
+        for(int i = 0; i < s.size(); i++){
+            if(s)
+        }
+
+        System.out.println(Arrays.toString(s));
+
+    }
+}
+EXPERIMENT 2
+import java.sql.*;
+import java.util.Scanner;
+
+public class ProductCRUD {
+
+    private static final String DB_URL = "jdbc:sqlite:products.db";
+    private static Connection conn;
+
+    public static void main(String[] args) {
+        try {
+            connect();
+            createTable();
+
+            Scanner scanner = new Scanner(System.in);
+            int choice;
+
+            do {
+                System.out.println("\nProduct Management System");
+                System.out.println("1. Add Product");
+                System.out.println("2. View Products");
+                System.out.println("3. Update Product");
+                System.out.println("4. Delete Product");
+                System.out.println("5. Exit");
+                System.out.print("Choose an option: ");
+                choice = scanner.nextInt();
+                scanner.nextLine(); // consume newline
+
+                switch (choice) {
+                    case 1 -> createProduct(scanner);
+                    case 2 -> readProducts();
+                    case 3 -> updateProduct(scanner);
+                    case 4 -> deleteProduct(scanner);
+                    case 5 -> System.out.println("Exiting...");
+                    default -> System.out.println("Invalid option. Try again.");
+                }
+
+            } while (choice != 5);
+
+            disconnect();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    private static void connect() throws SQLException {
+        conn = DriverManager.getConnection(DB_URL);
+        conn.setAutoCommit(false);  // Enable transaction handling
+    }
+
+    private static void disconnect() throws SQLException {
+        if (conn != null) conn.close();
+    }
+
+    private static void createTable() throws SQLException {
+        String sql = """
+            CREATE TABLE IF NOT EXISTS Product (
+                ProductID INTEGER PRIMARY KEY AUTOINCREMENT,
+                ProductName TEXT NOT NULL,
+                Price REAL NOT NULL,
+                Quantity INTEGER NOT NULL
+            );
+        """;
+        try (Statement stmt = conn.createStatement()) {
+            stmt.execute(sql);
+            conn.commit();
+        }
+    }
+
+    private static void createProduct(Scanner scanner) {
+        try {
+            System.out.print("Enter product name: ");
+            String name = scanner.nextLine();
+
+            System.out.print("Enter price: ");
+            double price = scanner.nextDouble();
+
+            System.out.print("Enter quantity: ");
+            int quantity = scanner.nextInt();
+            scanner.nextLine(); // consume newline
+
+            String sql = "INSERT INTO Product (ProductName, Price, Quantity) VALUES (?, ?, ?)";
+            try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
+                pstmt.setString(1, name);
+                pstmt.setDouble(2, price);
+                pstmt.setInt(3, quantity);
+                pstmt.executeUpdate();
+                conn.commit();
+                System.out.println("Product added successfully.");
+            }
+        } catch (Exception e) {
+            try {
+                conn.rollback();
+            } catch (SQLException ex) {
+                ex.printStackTrace();
+            }
+            System.out.println("Error adding product: " + e.getMessage());
+        }
+    }
+
+    private static void readProducts() {
+        String sql = "SELECT * FROM Product";
+        try (Statement stmt = conn.createStatement(); ResultSet rs = stmt.executeQuery(sql)) {
+            System.out.println("\nProduct List:");
+            while (rs.next()) {
+                System.out.printf("ID: %d | Name: %s | Price: %.2f | Quantity: %d\n",
+                        rs.getInt("ProductID"),
+                        rs.getString("ProductName"),
+                        rs.getDouble("Price"),
+                        rs.getInt("Quantity"));
+            }
+        } catch (SQLException e) {
+            System.out.println("Error reading products: " + e.getMessage());
+        }
+    }
+
+    private static void updateProduct(Scanner scanner) {
+        try {
+            System.out.print("Enter product ID to update: ");
+            int id = scanner.nextInt();
+            scanner.nextLine(); // consume newline
+
+            System.out.print("Enter new name: ");
+            String name = scanner.nextLine();
+
+            System.out.print("Enter new price: ");
+            double price = scanner.nextDouble();
+
+            System.out.print("Enter new quantity: ");
+            int quantity = scanner.nextInt();
+            scanner.nextLine(); // consume newline
+
+            String sql = "UPDATE Product SET ProductName = ?, Price = ?, Quantity = ? WHERE ProductID = ?";
+            try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
+                pstmt.setString(1, name);
+                pstmt.setDouble(2, price);
+                pstmt.setInt(3, quantity);
+                pstmt.setInt(4, id);
+
+                int rowsAffected = pstmt.executeUpdate();
+                if (rowsAffected > 0) {
+                    conn.commit();
+                    System.out.println("Product updated successfully.");
+                } else {
+                    System.out.println("No product found with that ID.");
+                }
+            }
+        } catch (Exception e) {
+            try {
+                conn.rollback();
+            } catch (SQLException ex) {
+                ex.printStackTrace();
+            }
+            System.out.println("Error updating product: " + e.getMessage());
+        }
+    }
+
+    private static void deleteProduct(Scanner scanner) {
+        try {
+            System.out.print("Enter product ID to delete: ");
+            int id = scanner.nextInt();
+            scanner.nextLine(); // consume newline
+
+            String sql = "DELETE FROM Product WHERE ProductID = ?";
+            try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
+                pstmt.setInt(1, id);
+                int rowsDeleted = pstmt.executeUpdate();
+
+                if (rowsDeleted > 0) {
+                    conn.commit();
+                    System.out.println("Product deleted successfully.");
+                } else {
+                    System.out.println("No product found with that ID.");
+                }
+            }
+        } catch (Exception e) {
+            try {
+                conn.rollback();
+            } catch (SQLException ex) {
+                ex.printStackTrace();
+            }
+            System.out.println("Error deleting product: " + e.getMessage());
+        }
+    }
+}
